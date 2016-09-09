@@ -26,7 +26,7 @@ var OUTPUT_FILE_NAME = 'rest-detail-list.json'
 var OUTPUT_ERROR_FILE_NAME = 'error-review-link-list.json'
 
 // globals
-var reviewLinks = require('./error-rest-link-list0909.json')
+var reviewLinks = _.uniq(require('./review-link-list.json'))
 var allLength = reviewLinks.length
 // 全てのkeyが存在するとは限らないので注意
 var restaurantDetails = []
@@ -52,6 +52,7 @@ function fetch(link) {
 
     // fetch information
     restaurantDetail.name = casper.fetchText('h1#HEADING').trim()
+    restaurantDetail.link = link
 
     try {
       basicInfo = getBasicInfo()

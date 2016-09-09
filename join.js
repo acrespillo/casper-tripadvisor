@@ -1,11 +1,8 @@
 var fs = require('fs')
 var _ = require('lodash')
-var noerror = require('./rest-detail-list-noerror.json')
-var fewinfo = require('./rest-detail-list-fewinfo.json')
-var links = require('./review-link-list.json')
+// var noerror = require('./rest-detail-list-noerror.json')
+var concated = require('./concated')
 
-var concated = noerror.concat(fewinfo)
-var linksaa = _.uniq(links)
-console.log(linksaa.length)
+var names = _.pluck(concated, 'name')
 
 // fs.writeFileSync('./concated.json', JSON.stringify(concated), 'utf8')
