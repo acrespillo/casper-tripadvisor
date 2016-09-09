@@ -4,14 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "casperjs main.js"
+    "start": "npm start:link && start:info",
+    "start:link": "casperjs fetch-link.js",
+    "start:info": "casperjs fetch-restaurants-info.js"
   },
-  "author": "",
+  "author": "Akihiro Yamamoto",
   "license": "ISC",
   "dependencies": {
     "casperjs": "^1.1.3",
     "lodash": "^4.15.0",
-    "phantomjs-prebuilt": "^2.1.12"
+    "phantomjs-prebuilt": "^2.1.12",
+    "underscore": "^1.8.3"
   }
 }
