@@ -23,10 +23,10 @@ var casper = require('casper').create({
 // constants
 var BASE_URL = 'https://www.tripadvisor.co.uk'
 var OUTPUT_FILE_NAME = 'rest-detail-list.json'
-var OUTPUT_ERROR_FILE_NAME = 'error-rest-link-list.json'
+var OUTPUT_ERROR_FILE_NAME = 'error-review-link-list.json'
 
 // globals
-var reviewLinks = require('./review-link-list.json')
+var reviewLinks = require('./error-rest-link-list0909.json')
 var allLength = reviewLinks.length
 // 全てのkeyが存在するとは限らないので注意
 var restaurantDetails = []
@@ -46,24 +46,37 @@ function fetch(link) {
   casper.thenOpen(BASE_URL + link, function() {
     echoLinkIsLoaded(++currentLinkNumber)
     var restaurantDetail = {}
+    var basicInfo = {}
+    var addressInfo = {}
+    var errorMessage = ''
+
+    // fetch information
+    restaurantDetail.name = casper.fetchText('h1#HEADING').trim()
 
     try {
-      // fetch information
-      restaurantDetail.name = casper.fetchText('h1#HEADING').trim()
-      var basicInfo = getBasicInfo()
-      var addressInfo = getLocationAndContactInfo()
-
-      // merge objects
-      restaurantDetail = _.extend(restaurantDetail, basicInfo, addressInfo)
-      utils.dump(restaurantDetail)
-
-      // push to global variable for writing data when fetching is end
-      restaurantDetails.push(restaurantDetail)
-
+      basicInfo = getBasicInfo()
     } catch (e) {
-      casper.log('ERROR: ' + e + ' link: ' + link, 'error')
+      errorMessage = e
+    }
+
+    try {
+      addressInfo = getLocationAndContactInfo()
+    } catch (e) {
+      errorMessage = e
+    }
+
+    if (errorMessage !== '') {
+      casper.log('ERROR: ' + errorMessage + ' link: ' + link, 'error')
       errorLinks.push(link)
     }
+
+    // ERROR扱いでも、一部のデータはあるので、結果配列にpushする
+    // merge objects
+    restaurantDetail = _.extend(restaurantDetail, basicInfo, addressInfo)
+    utils.dump(restaurantDetail)
+
+    // push to global variable for writing data when fetching is end
+    restaurantDetails.push(restaurantDetail)
   })
 }
 
