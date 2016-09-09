@@ -36,17 +36,6 @@ function fetchReviewLinksOnCurrentPage() {
     globalReviewLinks = globalReviewLinks.concat(this.evaluate(fetchLinks))
     console.log('LENGTH OF globalReviewLinks :', globalReviewLinks.length)
   })
-
-  // Open all links and gather information
-  // casper.then(function(){
-  //   this.each(links, function(self, link) {
-  //     this.thenOpen(BASE_URL + link, function() {
-  //       // TODO: GET restaurant detail information
-  //       this.echo(this.getTitle())
-  //     })
-  //   })
-  // })
-
 }
 
 function fetchReviewLinksRecursively(currentPageNumber) {

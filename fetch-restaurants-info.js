@@ -1,21 +1,37 @@
 var _ = require('underscore')
 var fs = require('fs')
 var utils = require('utils')
+
 var casper = require('casper').create({
   verbose: true,
   logLevel: 'warning',
-  waitTimeout: 5000,
+
+  pageSettings: {
+    loadImages : true,
+    loadPlugins : false,
+  },
+
+  // http://256cats.com/phantomjs-memory-leak/
+  onResourceRequested : function(R, req, net) {
+    var match = req.url.match(/fbexternal-a\.akamaihd\.net\/safe_image|\.pdf|\.mp4|\.png|\.gif|\.avi|\.bmp|\.jpg|\.jpeg|\.swf|\.fla|\.xsd|\.xls|\.doc|\.ppt|\.zip|\.rar|\.7zip|\.gz|\.csv/gim);
+    if (match !== null) {
+      net.abort();
+    }
+  },
 })
 
 // constants
 var BASE_URL = 'https://www.tripadvisor.co.uk'
 var OUTPUT_FILE_NAME = 'rest-detail-list.json'
+var OUTPUT_ERROR_FILE_NAME = 'error-rest-link-list.json'
 
 // globals
 var reviewLinks = require('./review-link-list.json')
 var allLength = reviewLinks.length
 // 全てのkeyが存在するとは限らないので注意
 var restaurantDetails = []
+// DOMがなかったとかERRORになったリンク
+var errorLinks = []
 var currentLinkNumber = 0
 
 
@@ -25,12 +41,45 @@ function echoLinkIsLoaded(linkNumber) {
   casper.echo('##############################');
 }
 
+
+function fetch(link) {
+  casper.thenOpen(BASE_URL + link, function() {
+    echoLinkIsLoaded(++currentLinkNumber)
+    var restaurantDetail = {}
+
+    try {
+      // fetch information
+      restaurantDetail.name = casper.fetchText('h1#HEADING').trim()
+      var basicInfo = getBasicInfo()
+      var addressInfo = getLocationAndContactInfo()
+
+      // merge objects
+      restaurantDetail = _.extend(restaurantDetail, basicInfo, addressInfo)
+      utils.dump(restaurantDetail)
+
+      // push to global variable for writing data when fetching is end
+      restaurantDetails.push(restaurantDetail)
+
+    } catch (e) {
+      casper.log('ERROR: ' + e + ' link: ' + link, 'error')
+      errorLinks.push(link)
+    }
+  })
+}
+
+
 // Average prices, Cuisine, Meals, Restaurant features, Good for, Open Hours
-// TODO: Average pricesがなぜかJPYで取得されるのでどうにかしたい、できれば。
 function getBasicInfo() {
+  var titleSelector = '.table_section .row .title'
+  var contentSelector = '.table_section .row .content'
+
+  if (! casper.exists(titleSelector) || ! casper.exists(contentSelector)) {
+    throw new Error('Not found basicInfo selector')
+  }
+
   var PICK_KEY = 'text'
-  var titles = casper.getElementsInfo('.table_section .row .title')
-  var contents = casper.getElementsInfo('.table_section .row .content')
+  var titles = casper.getElementsInfo(titleSelector)
+  var contents = casper.getElementsInfo(contentSelector)
 
   var titleTexts = _.map(titles, function(e) {
     var title = _.first(_.values(_.pick(e, PICK_KEY)))
@@ -46,8 +95,14 @@ function getBasicInfo() {
   return obj
 }
 
+
 function getLocationAndContactInfo() {
-  var elems = casper.getElementsInfo('.detailsContent .detail')
+  var detailSelector = '.detailsContent .detail'
+  var elems = casper.getElementsInfo(detailSelector)
+
+  if (! casper.exists(detailSelector)) {
+    throw new Error('Not found locationAndContactInfo selector')
+  }
 
   // １つのObjectにAddress, Location, Phone Numberをまとめたい
   var obj = _.reduce(elems, function(cur, e) {
@@ -62,36 +117,28 @@ function getLocationAndContactInfo() {
   return obj
 }
 
+
+
+
 // ENTRY POINT
-// FIXME: reviewLinks[170] でおちる
-casper.start(BASE_URL, function() {
-  // set currency to USD
-  this.evaluate(function() {
+casper.start(BASE_URL)
+
+// set currency to USD
+casper.then(function() {
+  casper.thenEvaluate(function() {
     ta.util.currency.setCurrencyAndReload('USD', 'JPY')
   })
 })
 
 // FETCH
-casper.each(reviewLinks, function(self, link) {
-  this.thenOpen(BASE_URL + link, function() {
-    echoLinkIsLoaded(++currentLinkNumber)
-    var restaurantDetail = {}
-
-    // fetch information
-    restaurantDetail.name = this.fetchText('h1#HEADING').trim()
-    var basicInfo = getBasicInfo()
-    var addressInfo = getLocationAndContactInfo()
-
-    // merge objects
-    restaurantDetail = _.extend(restaurantDetail, basicInfo, addressInfo)
-    utils.dump(restaurantDetail)
-
-    // push to global variable for writing data when fetching is end
-    restaurantDetails.push(restaurantDetail)
+casper.then(function() {
+  casper.eachThen(reviewLinks, function(response) {
+    fetch(response.data)
   })
 })
 
 casper.run(function() {
   fs.write(OUTPUT_FILE_NAME, JSON.stringify(restaurantDetails), 'w')
+  fs.write(OUTPUT_ERROR_FILE_NAME, JSON.stringify(errorLinks), 'w')
   this.echo('FINISHED').exit()
 })
