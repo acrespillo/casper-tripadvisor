@@ -13,6 +13,7 @@ var OUTPUT_FILE_NAME = 'rest-detail-list.json'
 
 // globals
 var reviewLinks = require('./review-link-list.json')
+var allLength = reviewLinks.length
 // 全てのkeyが存在するとは限らないので注意
 var restaurantDetails = []
 var currentLinkNumber = 0
@@ -20,7 +21,7 @@ var currentLinkNumber = 0
 
 function echoLinkIsLoaded(linkNumber) {
   casper.echo('##############################');
-  casper.echo('LINK NUMBER [' + linkNumber + ' / ' + reviewLinks.length + '] IS LOADED');
+  casper.echo('LINK NUMBER [' + linkNumber + ' / ' + allLength + '] IS LOADED');
   casper.echo('##############################');
 }
 
@@ -62,6 +63,7 @@ function getLocationAndContactInfo() {
 }
 
 // ENTRY POINT
+// FIXME: reviewLinks[170] でおちる
 casper.start().each(reviewLinks, function(self, link) {
   this.thenOpen(BASE_URL + link, function() {
     echoLinkIsLoaded(++currentLinkNumber)
