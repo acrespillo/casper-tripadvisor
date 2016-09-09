@@ -64,7 +64,15 @@ function getLocationAndContactInfo() {
 
 // ENTRY POINT
 // FIXME: reviewLinks[170] でおちる
-casper.start().each(reviewLinks, function(self, link) {
+casper.start(BASE_URL, function() {
+  // set currency to USD
+  this.evaluate(function() {
+    ta.util.currency.setCurrencyAndReload('USD', 'JPY')
+  })
+})
+
+// FETCH
+casper.each(reviewLinks, function(self, link) {
   this.thenOpen(BASE_URL + link, function() {
     echoLinkIsLoaded(++currentLinkNumber)
     var restaurantDetail = {}
